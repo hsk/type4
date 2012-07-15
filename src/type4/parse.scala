@@ -2,7 +2,7 @@ package type4
 
 object parse {
   def main(argv:Array[String]) {
-    val prg = "main=fun() {printInt(add(1,2,3))} add=fun(a,b,c) return a+b+c"
+    val prg = "main:()(void)={ printInt(add(1,2,3));printFloat(addf(1.1,0.1,0.2)) } add:(a:int,b:int,c:int)(int)={return a + b + c} addf:(a:float,b:float,c:float)(float)={return a .+ b .+ c}"
     val st = parse(prg)
     println("st="+st)
     val ast = st2ast(st)
@@ -22,7 +22,8 @@ object parse {
   }
   val comments = """(?s)^[\t\r\n ]*(#[^\r\n]*)(.*$)""".r
   val nums = """(?s)^[\t\r\n ]*([0-9]+)(.*$)""".r
-  val ns = """(?s)^[\t\r\n ]*([a-zA-Z_][a-zA-Z_0-9]*|[\(\)\{\}+,=;]|)(.*$)""".r
+  val floats = """(?s)^[\t\r\n ]*([0-9]+\.[0-9]+)(.*$)""".r
+  val ns = """(?s)^[\t\r\n ]*([a-zA-Z_][a-zA-Z_0-9]*|\.\+|[\(\)\{\}+,=;:]|)(.*$)""".r
   def apply(str:String):Any = {
     var src = str
     var token:Any = ""
@@ -31,6 +32,7 @@ object parse {
       ptoken = token
       src match {
         case comments(a,b) => src = b; lex()
+        case floats(a,b) => token = a.toFloat; src = b
         case nums(a,b) => token = a.toInt; src = b
         case ns(a,b) => token = a; src = b
       }
@@ -38,7 +40,7 @@ object parse {
     }
     def eat(e:Any):Any = {
       if(lex() != e) {
-        throw new Exception("syntax error. found unexpected token "+ptoken)
+        throw new Exception("syntax error. found unexpected token "+ptoken+ ". expected is "+e)
       }
       ptoken
     }
@@ -52,8 +54,10 @@ object parse {
     }
     def ins(a:Any):Any = a match {
       case "+" => (10,"l")
+      case ".+" => (10,"l")
       case "=" => (5,"r")
-      case "," => (3,"l")
+      case "," => (4,"l")
+      case ":" => (6,"l")
       case "(" => (0,"p",")")
       case ";" => (0,"e")
       case _ => -1
@@ -69,7 +73,7 @@ object parse {
             val e = exp(np)
             eat(")")
             (op,"(",e,")", exp(0))
-          case (np:Int,"p",ep) => val e = exp(np); (op,e,eat(ep))
+          case (np:Int,"p",ep) => val e = loop(exp(0)); (op,e,eat(ep))
           case (np:Int,"l") => (op, exp(np))
           case _ => op
         }
@@ -88,6 +92,9 @@ object parse {
     }
     def loop(t:Any):Any = token match {
       case "" => t
+      case "}" => t
+      case ")" => t
+      case "]" => t
       case _ => val e = (t,"@",exp(0)); loop(e)
     }
     loop(exp(0))

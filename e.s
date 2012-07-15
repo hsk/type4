@@ -6,14 +6,11 @@ subq $16, %rsp
 movl $3, -4(%rbp)
 movl $2, -8(%rbp)
 movl $1, -12(%rbp)
-movl -4(%rbp), %edi
-movl -8(%rbp), %esi
-movl -12(%rbp), %edx
 call _add
-movl %eax, %edi
 call _printInt
 	leave
 	ret
+.align 3
 .globl _add
 _add:
 	pushq	%rbp
@@ -33,3 +30,4 @@ leave
 ret
 	leave
 	ret
+.align 3

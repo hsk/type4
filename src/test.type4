@@ -1,5 +1,13 @@
-main=fun() {
-  printInt(add(1,2,3))
+
+main:()(void)={
+  printInt(add(1,2,3));
+  printFloat(addf(1.1,1.1,10.2));
 }
 
-add=fun(a,b,c) return a+b+c
+add:(a:int,b:int,c:int)(int)={
+  return a + b + c
+}
+
+addf:(a:float,b:float,c:float)(float)={
+  return a .+ b .+ c
+}

@@ -1,5 +1,4 @@
 package type4
-
 object setmem {
   var ls:List[Any] = List()
 
@@ -16,21 +15,24 @@ object setmem {
     case ("call", a, b:List[Any]) => ("call", a, b.map(f))
     case a:Int =>
       val id = genid("s_")
-      ls = ("mov",a,id)::ls
+      ls = ("var",a,(id,"int"))::ls
+      id
+   case a:Float =>
+      val id = genid("s_")
+      ls = ("var",a,(id,"float"))::ls
       id
     case a => a
   }
 
   def main(argv:Array[String]) {
     val prg = List(
-      ("_main",List(),List(
-        ("call","_printInt",List(("call","_add",List(1,2,30))))
+      ("_main",List(("void","void"), "void"),List(
+        ("call","_printInt",List(("call","_add",List(1, 2, 3))))
       )),
-      ("_add", List("a","b","c"),List(
-        ("ret",("add","a",("add","b","c")))
-      ))
-      
-    )
+      ("_add",List(("a","int"), ("b","int"), ("c","int"), "int"),List(
+        ("ret",("add",("add","a","b"),"c"))
+      )))
+
     val s = setmem(prg)
     println("s="+s)
     val e = expand(s)

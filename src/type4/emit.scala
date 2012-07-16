@@ -5,16 +5,42 @@ import java.lang.Float.floatToIntBits
 object emit {
 
   def main(argv:Array[String]) {
-    emit("emit.s", List(
-      ("_main",List(
-        ("movl", "$1", "%edi"),
-        ("call", "_printInt",List()),
-        ("movf", 1.1f, "%xmm0"),
-        ("call", "_printFloat",List())
-      ))
-    ))
-    exec("gcc -m64 -o emit emit.s src/lib.c") match {
-      case 0 => exec("./emit")
+    emit("e.s", List(
+        ("_main", List(
+            ("subq","$32","%rsp"),
+            ("movf",0.2f,("-4(%rbp)","float")),
+            ("movf",0.1f,("-8(%rbp)","float")),
+            ("movf",1.1f,("-12(%rbp)","float")),
+            ("movl","$3",("-16(%rbp)","int")),
+            ("movl","$2",("-20(%rbp)","int")),
+            ("movl","$1",("-24(%rbp)","int")),
+            ("call","_add",List(("-16(%rbp)","int"), ("-20(%rbp)","int"), ("-24(%rbp)","int"))),
+            ("call","_printInt",List("%eax")),
+            ("call","_addf",List(("-4(%rbp)","float"),("-8(%rbp)","float"),("-12(%rbp)","float"))),
+            ("call","_printFloat",List("%xmm0")))),
+        ("_add", List(
+            ("subq","$32","%rsp"),
+            ("movl","%edx",("-4(%rbp)","int")),
+            ("movl","%esi",("-8(%rbp)","int")),
+            ("movl","%edi",("-12(%rbp)","int")),
+            (),
+            ("addl",("-12(%rbp)","int"),("-8(%rbp)","int"),("-16(%rbp)","int")),
+            (),
+            ("addl",("-16(%rbp)","int"),("-4(%rbp)","int"),("-20(%rbp)","int")),
+            ("ret",("-20(%rbp)","int"))
+          )),
+        ("_addf", List(
+            ("subq","$32","%rsp"),
+            ("movf","%xmm2",("-4(%rbp)","float")),
+            ("movf","%xmm1",("-8(%rbp)","float")),
+            ("movf","%xmm0",("-12(%rbp)","float")),
+            (),
+            ("addf",("-12(%rbp)","float"),("-8(%rbp)","float"),("-16(%rbp)","float")),
+            (),
+            ("addf",("-16(%rbp)","float"),("-4(%rbp)","float"),("-20(%rbp)","float")),
+            ("ret",("-20(%rbp)","float"))))))
+    exec("gcc -m64 -o e e.s src/lib.c") match {
+      case 0 => exec("./e")
       case _ =>
     }
   }

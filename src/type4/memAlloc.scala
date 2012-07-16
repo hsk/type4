@@ -12,10 +12,8 @@ object memAlloc {
   }
   def g(l:Any):Any = l match {
     case ("var", a, ("void", "void")) =>
-    case ("var", "", (b:String, "int")) => counter -= 4; val n = counter+"(%rbp)"; m = m + (b -> (n,"int"));
-    case ("var", a, (b:String, "int")) => counter -= 4; val n = counter+"(%rbp)"; m = m + (b -> (n,"int")); ("movl", adr(a), adr(b))
-    case ("var", "", (b:String, "float")) => counter -= 4; val n = counter+"(%rbp)"; m = m + (b -> (n,"float"));
-    case ("var", a, (b:String, "float")) => counter -= 4; val n = counter+"(%rbp)"; m = m + (b -> (n,"float")); ("movf", adr(a), adr(b))
+    case ("var",  a, (b:String, "int")  ) => counter -= 4; val n = counter+"(%rbp)"; m = m + (b -> (n,"int"));   if(a!="")("movl", adr(a), adr(b))
+    case ("var",  a, (b:String, "float")) => counter -= 4; val n = counter+"(%rbp)"; m = m + (b -> (n,"float")); if(a!="")("movf", adr(a), adr(b))
     case ("movl", a, b) => ("movl", adr(a), adr(b))
     case ("addl", a, b, c) => ("addl", adr(a), adr(b),adr(c))
     case ("addf", a, b, c) => ("addf", adr(a), adr(b),adr(c))
@@ -33,31 +31,45 @@ object memAlloc {
   }
 
   def main(argv:Array[String]) {
-    val prgs = List(
-    ("_main",List(
-        ("var","$3",("s_3","int")),
-        ("var","$2",("s_2","int")),
-        ("var","$1",("s_1","int")),
-        ("call","_add",List("s_3", "s_2", "s_1")),
-        ("call","_printInt",List("%eax")))),
-    ("_add",List(
-        ("var","%edx",("c","int")),
-        ("var","%esi",("b","int")),
-        ("var","%edi",("a","int")),
-        ("var","", ("ex_5","int")),
-        ("addl","a","b","ex_5"),
-        ("var","", ("ex_4","int")),
-        ("addl","ex_5","c","ex_4"),
-        ("ret","ex_4"))))
+    val e = List(
+      ("_main",List(
+          ("var",0.2f,("s_6","float")),
+          ("var",0.1f,("s_5","float")),
+          ("var",1.1f,("s_4","float")),
+          ("var","$3",("s_3","int")),
+          ("var","$2",("s_2","int")),
+          ("var","$1",("s_1","int")),
+          ("call","_add",List("s_3","s_2","s_1")),
+          ("call","_printInt",List("%eax")),
+          ("call","_addf",List("s_6","s_5","s_4")),
+          ("call","_printFloat",List("%xmm0")))),
+      ("_add",List(
+          ("var","%edx",("c","int")),
+          ("var","%esi",("b","int")),
+          ("var","%edi",("a","int")),
+          ("var","",("ex_8","int")),
+          ("addl","a","b","ex_8"),
+          ("var","",("ex_7","int")),
+          ("addl","ex_8","c","ex_7"),
+          ("ret","ex_7"))),
+      ("_addf",List(
+          ("var","%xmm2",("c","float")),
+          ("var","%xmm1",("b","float")),
+          ("var","%xmm0",("a","float")),
+          ("var","",("ex_10","float")),
+          ("addf","a","b","ex_10"),
+          ("var","",("ex_9","float")),
+          ("addf","ex_10","c","ex_9"),
+          ("ret","ex_9"))))
 
-    val l = memAlloc(prgs)
-    emit("m.s",l)
-    exec("gcc -m64 -o m m.s src/lib.c") match {
-      case 0 => exec("./m")
+
+    val l = memAlloc(e)
+    emit("e.s",l)
+    exec("gcc -m64 -o e e.s src/lib.c") match {
+      case 0 => exec("./e")
       case _ =>
     }
 
   }
 
 }
-

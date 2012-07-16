@@ -3,24 +3,14 @@ package type4
 object expand {
 
   def main(argv:Array[String]) {
-    val prg = List(
-      ("_main",List(("void","void"), "void"),
-        List(
-          ("var",3,("s_3","int")),
-          ("var",2,("s_2","int")),
-          ("var",1,("s_1","int")),
-          ("call","_printInt",List(("call","_add",List("s_1", "s_2", "s_3")))))),
-      ("_add",List(("a","int"), ("b","int"), ("c","int"), "int"),
-        List(
-          ("ret",("addf",("addf","a","b"),"c")))))
-
-    val p = expand(prg)
-    println("p="+p)
-    val m = memAlloc(p)
-    println("m="+m)
-    emit("m.s", m)
-    exec("gcc -m64 -o m m.s src/lib.c") match {
-      case 0 => exec("./m")
+    val s = List(("_main",List(("void","void"),"void"),List(("var",0.2f,("s_6","float")),("var",0.1f,("s_5","float")),("var",1.1f,("s_4","float")),("var",3,("s_3","int")),("var",2,("s_2","int")),("var",1,("s_1","int")),("call","_printInt",List(("call","_add",List("s_1","s_2","s_3")))),("call","_printFloat",List(("call","_addf",List("s_4","s_5","s_6")))))),("_add",List(("a","int"),("b","int"),("c","int"),"int"),List(("ret",("add",("add","a","b"),"c")))),("_addf",List(("a","float"),("b","float"),("c","float"),"float"),List(("ret",("addf",("addf","a","b"),"c")))))
+    val e = expand(s)
+    println("p="+pp(e))
+    val m = memAlloc(e)
+    println("m="+pp(m))
+    emit("e.s", m)
+    exec("gcc -m64 -o e e.s src/lib.c") match {
+      case 0 => exec("./e")
       case _ =>
     }
   }

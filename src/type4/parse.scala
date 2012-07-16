@@ -4,15 +4,15 @@ object parse {
   def main(argv:Array[String]) {
     val prg = "main:()(void)={ printInt(add(1,2,3));printFloat(addf(1.1,0.1,0.2)) } add:(a:int,b:int,c:int)(int)={return a + b + c} addf:(a:float,b:float,c:float)(float)={return a .+ b .+ c}"
     val st = parse(prg)
-    println("st="+st)
+    println("st="+pp(st))
     val ast = st2ast(st)
-    println("ast="+ast)
+    println("ast="+pp(ast))
     val s = setmem(ast)
-    println("s="+s)
+    println("s="+pp(s))
     val e = expand(s)
-    println("e="+e)
+    println("e="+pp(e))
     val m = memAlloc(e)
-    println("m="+m)
+    println("m="+pp(m))
     emit("e.s", m)
     exec("gcc -m64 -o e e.s src/lib.c") match {
       case 0 => exec("./e")

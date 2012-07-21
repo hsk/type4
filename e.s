@@ -31,11 +31,11 @@ literal3:
 .literal4
 .align 2
 literal2:
-.long 1036831949
+.long 1066192077
 .literal4
 .align 2
 literal1:
-.long 1045220557
+.long 1092825907
 .align 3
 .globl _add
 _add:

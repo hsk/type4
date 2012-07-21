@@ -25,7 +25,15 @@ object setmem {
   }
 
   def main(argv:Array[String]) {
-    val ast =List(("_main",List(("void","void"),"void"),List(("call","_printInt",List(("call","_add",List(1,2,3)))),("call","_printFloat",List(("call","_addf",List(1.1f,0.1f,0.2f)))))),("_add",List(("a","int"),("b","int"),("c","int"),"int"),List(("ret",("add",("add","a","b"),"c")))),("_addf",List(("a","float"),("b","float"),("c","float"),"float"),List(("ret",("addf",("addf","a","b"),"c")))))
+    val ast =List(
+      ("_main",List(("void","void"),"void"),
+       List(
+          ("call","_printInt",List(("call","_add",List(1,2,3)))),
+          ("call","_printFloat",List(("call","_addf",List(1.1f,0.1f,0.2f)))))),
+      ("_add",List(("a","int"),("b","int"),("c","int"),"int"),
+       List(("ret",("add",("add","a","b"),"c")))),
+      ("_addf",List(("a","float"),("b","float"),("c","float"),"float"),
+       List(("ret",("addf",("addf","a","b"),"c")))))
     val s = setmem(ast)
     println("s="+pp(s))
     val e = expand(s)

@@ -3,7 +3,17 @@ package type4
 object expand {
 
   def main(argv:Array[String]) {
-    val s = List(("_main",List(("void","void"),"void"),List(("var",0.2f,("s_6","float")),("var",0.1f,("s_5","float")),("var",1.1f,("s_4","float")),("var",3,("s_3","int")),("var",2,("s_2","int")),("var",1,("s_1","int")),("call","_printInt",List(("call","_add",List("s_1","s_2","s_3")))),("call","_printFloat",List(("call","_addf",List("s_4","s_5","s_6")))))),("_add",List(("a","int"),("b","int"),("c","int"),"int"),List(("ret",("add",("add","a","b"),"c")))),("_addf",List(("a","float"),("b","float"),("c","float"),"float"),List(("ret",("addf",("addf","a","b"),"c")))))
+    val s = 	List(
+		("_aaa",List(("aa",("Ptr",List("int"))),"void"),List(
+			("var",100,("s_1","int")),
+			("call","_printInt",List(("ref","aa","s_1"))))),
+		("_main",List(("void","void"),"void"),List(
+			("var",100,("s_4","int")),
+			("var",5,("s_3","int")),
+			("var",101,("s_2","int")),
+			("var",("call","_malloc",List("s_2")),("a",("Ptr",List("Int")))),
+			("mov","s_3",("ref","a","s_4")),
+			("call","_aaa",List("a")))))
     val e = expand(s)
     println("p="+pp(e))
     val m = memAlloc(e)
@@ -28,7 +38,11 @@ object expand {
   }
 
   def apply(p:List[Any]):List[Any] = {
-    prgs = p:::List(("_printInt",List[Any]("int"),List()),("_printFloat",List[Any]("float"),List()))
+    prgs = p:::List(
+      ("_printInt",List[Any]("int"),List()),
+      ("_printFloat",List[Any]("float"),List()),
+      ("_malloc",List[Any]("long"),List())
+    )
     p.map {
       case (n,a:List[Any],b:List[Any]) =>
         val ll = b.foldLeft(argv(a, regs, xregs)){
@@ -47,6 +61,7 @@ object expand {
       case (a@(id,"void")::as, rs, xrs) => argv(as, rs, xrs)
       case ((a@(id,"int"))::as, r::rs, xrs) => ("var", r, a)::argv(as, rs, xrs)
       case ((a@(id,"float"))::as, rs, r::xrs) => ("var", r, a)::argv(as, rs, xrs)
+      case ((a@(id,("Ptr",_)))::as, r::rs, xrs) => ("var", r, a)::argv(as, rs, xrs)
     }
   }
 
@@ -58,6 +73,16 @@ object expand {
       val (la, a1) = f(l, a)
       val (lb, b1) = f(la, b)
       (("addl", a1, b1, id)::("var", "", (id, "int"))::lb,id)
+    case ("ref", a, b) =>
+      println("ref ***"+a+","+b)
+      val id = genid("ex_")
+      val (la, a1) = f(l, a)
+      val (lb, b1) = f(la, b)
+      (
+        ("movl", ("ref", a1, id), id)::
+        ("mull", id, "$4", id)::
+        ("movl", b1, id)::
+        ("var", "", (id, "int"))::lb,id)
     case ("addf", a, b) =>
       val id = genid("ex_")
       val (la, a1) = f(l, a)
@@ -66,9 +91,20 @@ object expand {
     case ("mov", a:String, id:String) => (("movl", a, id)::l, id)
     case ("var", a:Int, (id:String,t:String)) => (("var", ("$"+a),(id,t))::l, id)
     case ("var", a:Float, (id:String,t:String)) => (("var", a,(id,t))::l, id)
+    case ("var", a, (id:String,t)) =>
+      val (la, a1) = f(l, a)
+      (("var", a1,(id,t))::la, id)
     case ("mov", a, id:String) =>
       val (l2, id1) = f(l, a)
       (("movl", id1, id)::l2, id)
+    case ("mov", a, ("ref",id1:String,id2:String)) =>
+      val id = genid("ex_");
+      val (l2, id3) = f(l, a)
+      // id1とid2のキャストが
+      (("movl",id3, ("ref", id))::
+       ("addq", id1, id, id)::
+       ("mulq",id2, "$4", id)::
+       ("var", "", (id, "long"))::l2,id3)
     case ("call", a:String, b:List[Any]) =>
       var (la,ids) = b.foldLeft((l,List[String]())){
         case ((l,ids),b)=>
@@ -78,6 +114,9 @@ object expand {
       get_ret_type(a, prgs) match {
         case "int" => (("call", a, ids)::la, "%eax")
         case "float" => (("call", a, ids)::la, "%xmm0")
+        case "long" => (("call", a, ids)::la, "%rax")
+        case "void" => (("call", a, ids)::la, "%eax")
+        case t => throw new Exception("error call type "+a+" "+t)
       }
     case ("ret", e) =>
       val (l2, id) = f(l, e)

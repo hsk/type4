@@ -55,7 +55,20 @@ object emit {
         asm("\tpushq\t%rbp")
         asm("\tmovq\t%rsp, %rbp")
         body.foreach {
+          case ("movl",a@(_,"int"),b@(_,"int")) => asm("movl "+d(a)+", %eax"); asm("movl %eax,"+d(b))
+          case ("movl",("ref", a, b1),b) =>
+              asm("movq "+d(a)+", %rax");
+              asm("movl "+d(b1)+", %ecx");
+              asm("addq %rcx, %rax");
+              asm("movl (%rax), %eax");
+              asm("movl %eax,"+d(b))
+          case ("movl",a,("ref", b)) =>
+              asm("movl "+d(a)+", %ecx")
+              asm("movq "+d(b)+", %rax");
+              asm("movl %ecx, (%rax)");
           case ("movl",a,b) => asm("movl "+d(a)+", "+d(b))
+          case ("movq",a:String,b) => asm("movq "+d(toq(a))+", "+d(b))
+          case ("movq",a,b) => asm("movq "+d(a)+", "+d(b))
           case ("movf",a:Float,b) => asm("movss "+d(a)+", %xmm0"); asm("movss %xmm0,"+d(b))
           case ("movf",a,b) => asm("movss "+d(a)+", "+d(b))
           case ("subq",a,b) => asm("subq "+d(a)+", "+d(b))
@@ -67,6 +80,25 @@ object emit {
             asm("movss "+d(a)+", %xmm0")
             asm("addss "+d(b)+", %xmm0")
             asm("movss %xmm0, "+d(c))
+          case ("mull",a,b,c) =>
+            asm("movl "+d(a)+", %eax")
+            asm("movl "+d(b)+", %edx")
+            asm("imull %edx, %eax")
+            asm("movl %eax, "+d(c))
+          case ("mulq",a,b,c) =>
+            a match {
+              case (a,"int") =>
+                asm("movl "+d(a)+", %eax")
+              case (a,"long") =>
+                asm("movq "+d(a)+", %rax")
+            }
+            asm("imulq "+d(b)+", %rax")
+            asm("movq %rax, "+d(c))
+          case ("addq",a,b,c) =>
+            asm("movq "+d(a)+", %rax")
+            asm("addq "+d(b)+", %rax")
+            asm("movq %rax, "+d(c))
+
           case ("call", n, b:List[Any]) => prms(b, regs,xregs); asm("call "+n)
           case ("ret", a) =>
             asm("movl "+d(a)+", %eax")
@@ -86,6 +118,14 @@ object emit {
   var counter = 0
   var literals = List[Any]()
 
+  def toq(s:String):String = {
+    s match {
+      case "%edi"=>"%rdi"
+      case "%esi"=>"%rsi"
+      case "%edx"=>"%rdx"
+      case s => s
+    }
+  }
   def d(a:Any):Any = {
     a match {
       case a:Float => counter+=1; val l = "literal"+counter; literals = (l,a,"float")::literals; l+"(%rip)"
@@ -95,11 +135,14 @@ object emit {
   }
   val regs = List("%edi", "%esi", "%edx")
   val xregs = List("%xmm0", "%xmm1", "%xmm2")
-  def prms(ps:List[Any],rs:List[Any], xrs:List[Any]) {
+  def prms(ps:List[Any],rs:List[String], xrs:List[String]) {
     (ps,rs,xrs) match {
       case (List(),_,_) =>
       case ((p,"int")::ps,r::rs, xrs) =>
         asm("movl "+p+", "+d(r))
+        prms(ps, rs, xrs)
+      case ((p,"long")::ps,r::rs, xrs) =>
+        asm("movq "+p+", "+d(toq(r)))
         prms(ps, rs, xrs)
       case ((p,"float")::ps,rs, r::xrs) =>
         asm("movss "+d(p)+", "+d(r))

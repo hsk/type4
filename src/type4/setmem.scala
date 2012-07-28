@@ -11,8 +11,10 @@ object setmem {
   def f(e:Any):Any = e match {
     case ("mov", a, b) => ("mov", f(a), f(b))
     case ("ret", a) => ("ret", a)
+    case ("ref", a, b) => ("ref", f(a), f(b))
     case ("add", a, b) => ("add", f(a), f(b))
     case ("call", a, b:List[Any]) => ("call", a, b.map(f))
+    case ("var", a, (b,t)) => ("var", f(a), (b,t))
     case a:Int =>
       val id = genid("s_")
       ls = ("var",a,(id,"int"))::ls

@@ -2,7 +2,16 @@ package type4
 
 object parse {
   def main(argv:Array[String]) {
-    val prg = "main:()(void)={ printInt(add(1,2,3));printFloat(addf(1.1,0.1,0.2)) } add:(a:int,b:int,c:int)(int)={return a + b + c} addf:(a:float,b:float,c:float)(float)={return a .+ b .+ c}"
+    val prg = """
+	aaa:(aa:Ptr[int])(void) = {
+		printInt(aa[100])
+	}
+	main:(void)(void) = {
+	  a:Ptr[int] = malloc(101);
+	  a[100] = 5;
+	  aaa(a);
+	}
+"""
     val st = parse(prg)
     println("st="+pp(st))
     val ast = st2ast(st)
@@ -23,7 +32,7 @@ object parse {
   val comments = """(?s)^[\t\r\n ]*(#[^\r\n]*)(.*$)""".r
   val nums = """(?s)^[\t\r\n ]*([0-9]+)(.*$)""".r
   val floats = """(?s)^[\t\r\n ]*([0-9]+\.[0-9]+)(.*$)""".r
-  val ns = """(?s)^[\t\r\n ]*([a-zA-Z_][a-zA-Z_0-9]*|\.\+|[\(\)\{\}+,=;:]|)(.*$)""".r
+  val ns = """(?s)^[\t\r\n ]*([a-zA-Z_][a-zA-Z_0-9]*|\.\+|[\(\)\{\}\[\]+,=;:]|)(.*$)""".r
   def apply(str:String):Any = {
     var src = str
     var token:Any = ""
@@ -49,6 +58,7 @@ object parse {
       case "fun"=>(0,"st")
       case "{" => (0, "p","}")
       case "(" => (0, "p",")")
+      case "[" => (0, "p","]")
       case "return" => (0, "l")
       case _ => -1
     }
@@ -59,11 +69,12 @@ object parse {
       case "," => (4,"l")
       case ":" => (6,"l")
       case "(" => (0,"p",")")
+      case "[" => (0,"p","]")
       case ";" => (0,"e")
       case _ => -1
     }
     def exp(p:Int):Any = {
-      if(token ==")" || token == "}") return "void"
+      if(token ==")" || token == "}" || token == "]") return "void"
       def pr(t:Any):Any = {
         val op = t
         prs(op) match {
@@ -91,10 +102,7 @@ object parse {
       in(t)
     }
     def loop(t:Any):Any = token match {
-      case "" => t
-      case "}" => t
-      case ")" => t
-      case "]" => t
+      case "" | "}" | ")" | "]" => t
       case _ => val e = (t,"@",exp(0)); loop(e)
     }
     loop(exp(0))

@@ -27,8 +27,16 @@ object st2ast {
 
   def params(e:Any):List[Any] = e match {
     case (a,",",b) => params(a):::params(b)
-    case (a,":",b) => List((a,b))
+    case (a,":",b) => List(("_"+a,typ(b)))
     case "void" => List(("void","void"))
+  }
+  def typ(e:Any):Any = e match {
+    case (b,"[",a,"]") => (b, typs(a))
+    case a => a
+  }
+  def typs(e:Any):List[Any] = e match {
+    case (a,",",b) => typs(a):::typs(b)
+    case a => List(a)
   }
   def fargs(e:Any):List[Any] = e match {
     case (a,",",b) => fargs(a):::fargs(b)
@@ -38,6 +46,8 @@ object st2ast {
   def exp(e:Any):Any = e match {
     case ("{",b,"}") => bodys(b)
     case ("(",b,")") => exp(b)
+    case ((a,":",b),"=",c) => ("var",exp(c),("_"+a,typ(b)))
+    case (a,"[",b,"]") => ("ref", exp(a), exp(b))
     case (a,"(",b,")") => ("call","_"+a,fargs(b))
     case (a,"=",b) => ("mov", exp(b), exp(a))
     case (a,"+",b) => ("add",exp(a), exp(b))
@@ -45,7 +55,7 @@ object st2ast {
     case ("return", a) => ("ret", exp(a))
     case (a,";") => exp(a)
     case a:Int => a
-    case a:String => a
+    case a:String => "_"+a
     case a:Float => a
   }
   def bodys(e:Any):List[Any] = e match {
